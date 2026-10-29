@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode build products and derived data
+DerivedData/
+build/
+*.xcuserstate
+*.xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM/
+*.dSYM.zip
+
+# Xcode workspace and package manager caches
+*.xccheckout
+*.xcscmblueprint
+.swiftpm/
+.build/
+
+# Dependency manager checkouts
+Pods/
+Carthage/Build/
+
+# Fastlane generated artifacts
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output/
