@@ -15,9 +15,8 @@ protocol BasketRepository {
 }
 
 @MainActor
-protocol PriceTrackingRepository {
-    func trackedItems() -> [TrackedItem]
-    func save(_ items: [TrackedItem])
+protocol PersistentAppStateRepository: BasketRepository {
+    var appState: AppPersistentState { get set }
 }
 
 @MainActor

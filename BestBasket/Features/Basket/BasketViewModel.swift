@@ -5,7 +5,6 @@ import Observation
 final class BasketViewModel {
     private let basketRepository: any BasketRepository
     private let preferencesRepository: any PreferencesRepository
-    private let offerRankingService: OfferRankingService
     private let products: [CatalogProduct]
     private let offers: [PriceOffer]
     private let platforms: [String]
@@ -14,7 +13,6 @@ final class BasketViewModel {
          preferencesRepository: any PreferencesRepository) {
         self.basketRepository = basketRepository
         self.preferencesRepository = preferencesRepository
-        self.offerRankingService = OfferRankingService()
         self.products = productRepository.products()
         self.offers = productRepository.allOffers()
         self.platforms = productRepository.platforms()
@@ -24,8 +22,7 @@ final class BasketViewModel {
     var itemCount: Int { lines.reduce(0) { $0 + $1.quantity } }
     var summary: BasketSummary {
         BasketCalculator.calculate(lines: lines, products: products, offers: offers, platforms: platforms,
-                                  preferences: preferencesRepository.preferences,
-                                  offerRankingService: offerRankingService)
+                                  preferences: preferencesRepository.preferences)
     }
 
     func offer(for line: BasketLine) -> PriceOffer? {
@@ -37,7 +34,7 @@ final class BasketViewModel {
     }
     func add(_ offer: PriceOffer, quantity: Int = 1) {
         var updated = lines
-        if let index = updated.firstIndex(where: { $0.offerID == offer.id }) {
+        if let index = updated.firstIndex(where: { self.offer(for: $0)?.productID == offer.productID }) {
             updated[index].quantity += quantity
         } else {
             updated.append(BasketLine(id: UUID().uuidString, offerID: offer.id, quantity: quantity))
@@ -54,7 +51,21 @@ final class BasketViewModel {
     func replaceOffer(for lineID: String, with offer: PriceOffer) {
         var updated = lines
         guard let index = updated.firstIndex(where: { $0.id == lineID }) else { return }
+        guard self.offer(for: updated[index])?.productID == offer.productID else { return }
         updated[index].offerID = offer.id
+        basketRepository.save(updated)
+    }
+    func apply(_ plan: BasketPlan) {
+        guard plan.isComplete else { return }
+        var updated = lines
+        guard plan.assignments.count == updated.count else { return }
+        for assignment in plan.assignments {
+            guard let lineIndex = updated.firstIndex(where: { $0.id == assignment.line.id }),
+                  let productID = offer(for: updated[lineIndex])?.productID,
+                  assignment.offer.productID == productID,
+                  assignment.offer.available else { return }
+            updated[lineIndex].offerID = assignment.offer.id
+        }
         basketRepository.save(updated)
     }
     func remove(_ line: BasketLine) { basketRepository.save(lines.filter { $0.id != line.id }) }

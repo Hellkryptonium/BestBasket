@@ -1,8 +1,53 @@
 import SwiftUI
 
 struct SearchResultRow: View {
-    let product:CatalogProduct; @Bindable var model:SearchViewModel; let action:()->Void
-    var body:some View { Button(action:action) { HStack(spacing:12) { ProductArt(product:product).frame(width:78,height:78); VStack(alignment:.leading,spacing:4) { Text(product.name).font(.subheadline.weight(.semibold)).foregroundStyle(AppPalette.ink).lineLimit(2); Text("\(product.brand) · \(product.packSize)").font(.caption).foregroundStyle(AppPalette.muted); if let reason = model.personalizationReason(for: product) { Text(reason).font(.caption2.weight(.medium)).foregroundStyle(AppPalette.cobalt).lineLimit(1) }; HStack(spacing:8) { Label(String(format:"%.1f",product.rating),systemImage:"star.fill").foregroundStyle(AppPalette.ink); Text("·"); Text("\(model.offers(for:product).filter(\.available).count) sample offers").foregroundStyle(AppPalette.pine) }.font(.caption2) }; Spacer(minLength:0); VStack(alignment:.trailing,spacing:3) { Text(model.displayedOffer(for:product).map { money($0.price) } ?? "—").font(.subheadline.weight(.bold)).foregroundStyle(AppPalette.ink); Text("from \(model.displayedOffer(for:product)?.retailer ?? "")").font(.caption2).foregroundStyle(AppPalette.muted) } }.padding(11).background(.white,in:RoundedRectangle(cornerRadius:16)) }.buttonStyle(.plain) }
+    let product: CatalogProduct
+    @Bindable var model: SearchViewModel
+    let lists: GroceryListsViewModel
+    let action: () -> Void
+    @State private var expanded = false
+    var body: some View {
+        VStack(spacing: 0) {
+            Button(action: action) {
+                HStack(spacing: 12) {
+                    ProductArt(product: product).frame(width: 68, height: 68)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(product.name).font(.subheadline.weight(.semibold)).foregroundStyle(AppPalette.ink).lineLimit(2)
+                        Text("\(product.brand) · \(product.packSize)").font(.caption).foregroundStyle(AppPalette.muted)
+                        if let reason = model.personalizationReason(for: product) { Text(reason).font(.caption2).foregroundStyle(AppPalette.cobalt).lineLimit(1) }
+                        Text("★ \(String(format: "%.1f", product.rating)) · \(model.offers(for: product).filter(\.available).count) platform offers").font(.caption2).foregroundStyle(AppPalette.pine)
+                    }
+                    Spacer(minLength: 0)
+                    VStack(alignment: .trailing) {
+                        Text(model.displayedOffer(for: product).map { money($0.effectivePrice) } ?? "—").font(.subheadline.weight(.bold)).foregroundStyle(AppPalette.ink)
+                        Text("best offer").font(.caption2).foregroundStyle(AppPalette.muted)
+                    }
+                }.padding(11).contentShape(Rectangle())
+            }.buttonStyle(.plain)
+            Button { withAnimation(.snappy) { expanded.toggle() } } label: {
+                Label(expanded ? "Hide platform prices" : "Compare platforms", systemImage: "arrow.left.arrow.right")
+                    .font(.caption.weight(.semibold)).foregroundStyle(AppPalette.cobalt).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12).padding(.bottom, 10)
+            }.buttonStyle(.plain)
+            if expanded {
+                ForEach(model.offers(for: product).filter(\.available).sorted { $0.effectivePrice < $1.effectivePrice }) { offer in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) { Text(offer.retailer).font(.caption.weight(.semibold)); Text(offer.delivery).font(.caption2).foregroundStyle(AppPalette.muted) }
+                        Spacer()
+                        Text(money(offer.effectivePrice)).font(.caption.weight(.bold))
+                        Menu {
+                            ForEach(lists.lists) { list in Button(list.name) { lists.add(product.id, to: list) } }
+                            Button("Create list and add") {
+                                _ = lists.create()
+                                if let list = lists.lists.first { lists.add(product.id, to: list) }
+                            }
+                        } label: { Image(systemName: "text.badge.plus").foregroundStyle(AppPalette.cobalt).padding(.leading, 5) }
+                        Button { model.addToBasket(offer) } label: { Image(systemName: "basket.badge.plus").foregroundStyle(AppPalette.pine).padding(.leading, 5) }.accessibilityLabel("Add \(product.name) from \(offer.retailer) to Basket")
+                    }.padding(.horizontal, 12).padding(.vertical, 9)
+                    if offer.id != model.offers(for: product).filter(\.available).sorted(by: { $0.effectivePrice < $1.effectivePrice }).last?.id { Divider().padding(.leading, 12) }
+                }
+            }
+        }.background(.white, in: RoundedRectangle(cornerRadius: 16)).clipShape(RoundedRectangle(cornerRadius: 16))
+    }
 }
 struct FilterPill: View { let title:String; let remove:()->Void; var body:some View { Button(action:remove) { HStack(spacing:5) { Text(title); Image(systemName:"xmark") }.font(.caption.weight(.semibold)).foregroundStyle(.white).padding(.horizontal,10).padding(.vertical,7).background(AppPalette.cobalt,in:Capsule()) } } }
 struct FilterSheet: View {

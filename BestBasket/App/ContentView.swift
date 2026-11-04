@@ -10,9 +10,12 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             DiscoverView(
                 model: dependencies.discover,
+                essentialsModel: dependencies.essentials,
+                cookShopModel: dependencies.cookShop,
                 openProduct: { selectedProduct = $0 },
                 goToSearch: { selectedTab = .search },
                 goToBasket: { selectedTab = .basket },
+                goToBasketWatch: { selectedTab = .tracking },
                 openCategory: { category in
                     dependencies.search.selectedCategory = category
                     selectedTab = .search
@@ -21,9 +24,17 @@ struct ContentView: View {
             .tabItem { Label("Discover", systemImage: "sparkles") }
             .tag(AppTab.discover)
 
-            SearchView(model: dependencies.search, openProduct: { selectedProduct = $0 }, showFilters: { showingFilters = true })
+            SearchView(model: dependencies.search, openProduct: { selectedProduct = $0 }, showFilters: { showingFilters = true }, lists: dependencies.groceryLists)
                 .tabItem { Label("Search", systemImage: "magnifyingglass") }
                 .tag(AppTab.search)
+
+            GroceryListsView(model: dependencies.groceryLists)
+                .tabItem { Label("Lists", systemImage: "list.bullet") }
+                .tag(AppTab.lists)
+
+            EssentialsView(model: dependencies.essentials)
+                .tabItem { Label("Essentials", systemImage: "repeat") }
+                .tag(AppTab.essentials)
 
             BasketView(model: dependencies.basket, openProduct: { selectedProduct = $0 })
                 .tabItem {
@@ -31,8 +42,8 @@ struct ContentView: View {
                 }
                 .tag(AppTab.basket)
 
-            TrackingView(model: dependencies.tracking, openProduct: { selectedProduct = $0 })
-                .tabItem { Label("Tracking", systemImage: "chart.line.uptrend.xyaxis") }
+            TrackingView(model: dependencies.tracking)
+                .tabItem { Label("Basket Watch", systemImage: "bell.badge") }
                 .tag(AppTab.tracking)
 
             PersonalizationView(model: dependencies.personalization)

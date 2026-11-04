@@ -25,7 +25,7 @@ struct OfferRow: View {
                 if let reason {
                     Text(reason).font(.caption2.weight(.medium)).foregroundStyle(AppPalette.cobalt)
                 }
-                Text("Delivery fee \(money(offer.deliveryFee))\(offer.discount > 0 ? " · item offer −\(money(offer.discount))" : "")")
+                Text("Delivery \(money(offer.deliveryFee)) · platform \(money(offer.platformFee))\(offer.discount > 0 ? " · item offer −\(money(offer.discount))" : "")")
                     .font(.caption2).foregroundStyle(AppPalette.muted)
             }
             Spacer(minLength: 0)

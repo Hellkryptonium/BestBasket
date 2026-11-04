@@ -3,17 +3,7 @@ import SwiftUI
 struct ProductDetailView: View {
     @Bindable var model: ProductDetailViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var targetText = ""
-    @State private var showTarget = false
-
     private var product: CatalogProduct { model.product }
-    private var trackingActionButton: some View {
-        Button(action: prepareTracking) {
-            Label(model.trackedItem == nil ? "Track price" : "Edit price alert", systemImage: "bell.badge")
-                .frame(maxWidth: .infinity).padding(14).background(.white, in: RoundedRectangle(cornerRadius: 14))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(AppPalette.ink, lineWidth: 1.5))
-        }
-    }
     private var addBestOfferButton: some View {
         Button(action: addBestOffer) {
             Label("Add best offer", systemImage: "basket.badge.plus")
@@ -32,8 +22,18 @@ struct ProductDetailView: View {
                     productSummary
                     offerComparison
                     recommendationExplanation
-                    HStack(spacing: 10) { trackingActionButton; addBestOfferButton }
+                    addBestOfferButton
                         .font(.caption.weight(.bold)).foregroundStyle(AppPalette.ink)
+                    Menu {
+                        ForEach(model.groceryLists.lists) { list in Button(list.name) { model.groceryLists.add(product.id, to: list) } }
+                        Button("Create list and add") {
+                            _ = model.groceryLists.create()
+                            if let list = model.groceryLists.lists.first { model.groceryLists.add(product.id, to: list) }
+                        }
+                    } label: {
+                        Label("Add to Grocery List", systemImage: "text.badge.plus")
+                            .frame(maxWidth: .infinity).padding(14).background(.white, in: RoundedRectangle(cornerRadius: 14))
+                    }.buttonStyle(.plain)
                     Label("Retailer checkout will be available in a future version", systemImage: "arrow.up.right.square")
                         .font(.caption.weight(.medium)).foregroundStyle(AppPalette.muted).frame(maxWidth: .infinity)
                     Text("Sample data only · no purchase or retailer connection is available.")
@@ -45,13 +45,6 @@ struct ProductDetailView: View {
             .navigationTitle("Product")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Close") { dismiss() } } }
-            .alert("Set a target price", isPresented: $showTarget) {
-                TextField("Target in rupees", text: $targetText).keyboardType(.decimalPad)
-                Button("Save", action: saveTarget)
-                Button("Cancel", role: .cancel) { }
-            } message: {
-                Text("We’ll highlight when a sample offer reaches your target.")
-            }
         }
     }
 
@@ -82,27 +75,14 @@ struct ProductDetailView: View {
     private var recommendationExplanation: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("How we picked the best value").font(.subheadline.weight(.bold))
-            Text("Available offers are ranked with your delivery, platform, and price preferences. Delivery fees are included in basket totals.")
+            Text("Available offers are ranked with your delivery, platform, and price preferences. Delivery and platform fees are included in basket totals.")
                 .font(.caption).foregroundStyle(AppPalette.muted)
         }
         .padding(14).background(AppPalette.blush.opacity(0.55), in: RoundedRectangle(cornerRadius: 16))
     }
 
-    private func prepareTracking() {
-        if let tracked = model.trackedItem {
-            targetText = NSDecimalNumber(decimal: tracked.targetPrice).stringValue
-        } else if let price = model.bestOffer?.price {
-            targetText = NSDecimalNumber(decimal: price * Decimal(9) / Decimal(10)).stringValue
-        }
-        showTarget = true
-    }
     private func addBestOffer() {
         guard let offer = model.bestOffer else { return }
         model.add(offer)
-    }
-    private func saveTarget() {
-        let target = Decimal(string: targetText) ?? model.bestOffer?.price ?? 0
-        model.track(targetPrice: target)
-        targetText = ""
     }
 }

@@ -8,9 +8,10 @@ struct PriceOffer: Identifiable, Hashable {
     let originalPrice: Decimal?
     let discount: Decimal
     let deliveryFee: Decimal
+    let platformFee: Decimal
     let available: Bool
     let delivery: String
     let colorName: String
 
-    var effectivePrice: Decimal { price + deliveryFee - discount }
+    var effectivePrice: Decimal { price + deliveryFee + platformFee - discount }
 }

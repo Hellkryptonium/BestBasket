@@ -37,7 +37,12 @@ enum MockCatalog {
             let amount = max(Decimal(12), base + variation)
             let available = !(product.id == "tissue" && platform == "Zepto") && !(product.id == "apples" && platform == "Instamart")
             let discount: Decimal = (index == 1 && product.id.count % 2 == 0) ? 5 : 0
-            return PriceOffer(id: "\(product.id)-\(platform)", productID: product.id, retailer: platform, price: amount, originalPrice: discount > 0 ? amount + discount : nil, discount: discount, deliveryFee: index == 0 ? 15 : (index == 2 ? 25 : 18), available: available, delivery: index == 0 ? "20–30 min" : (index == 1 ? "15–25 min" : "30–45 min"), colorName: platform)
+            let deliveryFee: Decimal = index == 0 ? 10 : (index == 2 ? 15 : 12)
+            let platformFee: Decimal = index == 0 ? 5 : (index == 2 ? 10 : 6)
+            return PriceOffer(id: "\(product.id)-\(platform)", productID: product.id, retailer: platform, price: amount,
+                              originalPrice: discount > 0 ? amount + discount : nil, discount: discount,
+                              deliveryFee: deliveryFee, platformFee: platformFee, available: available,
+                              delivery: index == 0 ? "20–30 min" : (index == 1 ? "15–25 min" : "30–45 min"), colorName: platform)
         }
     }
     static func price(for id: String) -> Decimal {

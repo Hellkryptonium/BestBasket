@@ -5,35 +5,36 @@ import Observation
 final class ProductDetailViewModel {
     let product: CatalogProduct
     private let basketRepository: any BasketRepository
-    private let trackingRepository: any PriceTrackingRepository
     private let preferencesRepository: any PreferencesRepository
     private let offerRankingService: OfferRankingService
     private let allOffers: [PriceOffer]
+    private let productOffers: [PriceOffer]
+    let groceryLists: GroceryListsViewModel
 
     init(product: CatalogProduct, productRepository: any ProductRepository,
-         basketRepository: any BasketRepository, trackingRepository: any PriceTrackingRepository,
-         preferencesRepository: any PreferencesRepository, offerRankingService: OfferRankingService) {
+         basketRepository: any BasketRepository,
+         preferencesRepository: any PreferencesRepository, offerRankingService: OfferRankingService,
+         groceryLists: GroceryListsViewModel) {
         self.product = product
         self.basketRepository = basketRepository
-        self.trackingRepository = trackingRepository
         self.preferencesRepository = preferencesRepository
         self.offerRankingService = offerRankingService
-        self.allOffers = productRepository.offers(for: product.id)
+        self.allOffers = productRepository.allOffers()
+        self.productOffers = productRepository.offers(for: product.id)
+        self.groceryLists = groceryLists
     }
 
     var rankedOffers: [RankedOffer] {
-        offerRankingService.rank(product: product, offers: allOffers, preferences: preferencesRepository.preferences)
+        offerRankingService.rank(product: product, offers: productOffers, preferences: preferencesRepository.preferences)
     }
     var offers: [PriceOffer] {
-        rankedOffers.map(\.offer) + allOffers.filter { !$0.available }.sorted { $0.effectivePrice < $1.effectivePrice }
+        rankedOffers.map(\.offer) + productOffers.filter { !$0.available }.sorted { $0.effectivePrice < $1.effectivePrice }
     }
     var bestOffer: PriceOffer? { rankedOffers.first?.offer }
     func offerReason(_ offer: PriceOffer) -> String? { rankedOffers.first(where: { $0.id == offer.id })?.reason }
-    var trackedItem: TrackedItem? { trackingRepository.trackedItems().first { $0.id == product.id } }
-
     func add(_ offer: PriceOffer, toBasket quantity: Int = 1) {
         var lines = basketRepository.lines()
-        if let index = lines.firstIndex(where: { $0.offerID == offer.id }) {
+        if let index = lines.firstIndex(where: { basketRepositoryProductID(for: $0) == offer.productID }) {
             lines[index].quantity += quantity
         } else {
             lines.append(BasketLine(id: UUID().uuidString, offerID: offer.id, quantity: quantity))
@@ -41,13 +42,8 @@ final class ProductDetailViewModel {
         basketRepository.save(lines)
     }
 
-    func track(targetPrice: Decimal) {
-        var tracked = trackingRepository.trackedItems()
-        if let index = tracked.firstIndex(where: { $0.id == product.id }) {
-            tracked[index].targetPrice = targetPrice
-        } else {
-            tracked.append(TrackedItem(id: product.id, targetPrice: targetPrice))
-        }
-        trackingRepository.save(tracked)
+    private func basketRepositoryProductID(for line: BasketLine) -> String? {
+        // Product IDs are stable prefixes in this mock catalog's offer IDs.
+        allOffers.first(where: { $0.id == line.offerID })?.productID
     }
 }

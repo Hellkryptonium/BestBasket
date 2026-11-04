@@ -8,13 +8,6 @@ final class InMemoryBasketRepository: BasketRepository {
 }
 
 @MainActor @Observable
-final class InMemoryPriceTrackingRepository: PriceTrackingRepository {
-    private var storage: [TrackedItem] = []
-    func trackedItems() -> [TrackedItem] { storage }
-    func save(_ items: [TrackedItem]) { storage = items }
-}
-
-@MainActor @Observable
 final class InMemoryPreferencesRepository: PreferencesRepository {
     var preferences = ShoppingPreferences()
 }

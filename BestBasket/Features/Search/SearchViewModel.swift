@@ -6,6 +6,7 @@ final class SearchViewModel {
     private var preferencesRepository: any PreferencesRepository
     private let recommendationService: RecommendationService
     private let offerRankingService: OfferRankingService
+    private let basketRepository: any BasketRepository
     let products: [CatalogProduct]
     private let offersByProductID: [String: [PriceOffer]]
     let platforms: [String]
@@ -20,10 +21,12 @@ final class SearchViewModel {
     var sort: ProductSort = .relevance
 
     init(productRepository: any ProductRepository, preferencesRepository: any PreferencesRepository,
-         recommendationService: RecommendationService, offerRankingService: OfferRankingService) {
+         recommendationService: RecommendationService, offerRankingService: OfferRankingService,
+         basketRepository: any BasketRepository) {
         self.preferencesRepository = preferencesRepository
         self.recommendationService = recommendationService
         self.offerRankingService = offerRankingService
+        self.basketRepository = basketRepository
         self.products = productRepository.products()
         self.offersByProductID = Dictionary(grouping: productRepository.allOffers(), by: \.productID)
         self.platforms = productRepository.platforms()
@@ -48,6 +51,12 @@ final class SearchViewModel {
     }
 
     func offers(for product: CatalogProduct) -> [PriceOffer] { offersByProductID[product.id] ?? [] }
+    func addToBasket(_ offer: PriceOffer) {
+        var lines = basketRepository.lines()
+        if let i = lines.firstIndex(where: { $0.id == offer.productID }) { lines[i].offerID = offer.id; lines[i].quantity += 1 }
+        else { lines.append(BasketLine(id: offer.productID, offerID: offer.id, quantity: 1)) }
+        basketRepository.save(lines)
+    }
     func displayedOffer(for product: CatalogProduct) -> PriceOffer? {
         if let selectedPlatform,
            let offer = offers(for: product).first(where: { $0.retailer == selectedPlatform && $0.available }) {
